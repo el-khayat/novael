@@ -1,0 +1,6 @@
+# Novaël uses a hosted Supabase project (no local Docker stack).
+# The CLI still needs a config file to operate `supabase link` / `db push` / `db diff`.
+# When you run `supabase link --project-ref <ref>`, the CLI stores the ref
+# in supabase/.temp/ (gitignored).
+
+project_id = "novael"

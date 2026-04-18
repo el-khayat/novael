@@ -9,3 +9,9 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 *.log
+
+# Supabase
+supabase/.branches
+supabase/.temp
+supabase/.env
+
