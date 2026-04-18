@@ -1,0 +1,101 @@
+---
+description: Component structure, primitives, animation & a11y patterns
+globs: src/components/**
+alwaysApply: false
+---
+
+# Components
+
+Three layers, each with a clear role:
+
+| Layer | Folder | Purpose |
+|---|---|---|
+| **Primitives** | `components/ui/` | Generic, reusable: `Button`, `Input`, `Textarea`, `Badge`, `StatusBadge`, `Modal`, `Spinner`, `PageLoader`, `ProductCardSkeleton`, `Toast` (+ `toast` helper, `ToastHost`) |
+| **Common** | `components/common/` | Brand atoms: `Logo`, `GoldDivider`, `AnimatedReveal`, `SearchOverlay` |
+| **Domain** | `cart/`, `product/`, `auth/`, `layout/` | Feature-bound, often consumes stores/hooks |
+
+## Component Structure (the standard shape)
+
+```jsx
+import { cn } from '../../lib/utils'
+
+export default function Thing({ variant = 'default', className, children, ...rest }) {
+  return (
+    <div className={cn('base classes', variantClasses[variant], className)} {...rest}>
+      {children}
+    </div>
+  )
+}
+```
+
+Rules:
+- **Default export** for the main component. Named exports for variants (e.g. `Textarea`, `StatusBadge`, `PageLoader`).
+- **`forwardRef`** for any focusable primitive (`Button`, `Input`, `Textarea` already do this).
+- **Variants object** at module top, indexed by a `variant` prop.
+- Last className parameter to `cn(...)` is always the consumer's `className`, so callers can override.
+
+## Primitives — How to Use
+
+### Button (`ui/Button.jsx`)
+- `variant`: `outline` (default, `.btn-luxe`), `filled` (gold-fill), `dark` (black on light bg), `ghost`, `link`.
+- `size`: `sm`, `md` (default), `lg`, `xl`.
+- Pass `loading` for a spinner + auto-disable. Polymorphic via `as` prop.
+
+### Input / Textarea (`ui/Input.jsx`)
+- Props: `label`, `hint`, `error`, `dark` (true on dark surfaces — switches border colors).
+- Style: underline-only on light, gold-underline on dark. Never a boxed input.
+- Always pass `label` for accessibility — the wrapping `<label>` makes the input clickable.
+
+### Badge / StatusBadge (`ui/Badge.jsx`)
+- `variant`: `gold`, `plum`, `mauve`, `rose`, `ivory`, `outline`, `outline-dark`, `dark`, `muted`.
+- `<StatusBadge status="shipped" />` maps order statuses to the right tone — use it everywhere status is shown.
+
+### Modal (`ui/Modal.jsx`)
+- Wraps Radix Dialog. **Centering uses Framer Motion's `x: '-50%', y: '-50%'`** — DO NOT swap to Tailwind `-translate-*` classes (they get overwritten by Framer's animated transform).
+- `size`: `sm` `md` `lg` `xl`. Always use the title prop for screen readers.
+
+### Toast (`ui/Toast.jsx`)
+- Imperatively call `toast.success(title, description?)`, `toast.error(...)`, `toast.info(...)`.
+- Provider lives in `main.jsx`; `<ToastHost />` is rendered in `App.jsx`. Don't add another provider.
+
+### Spinner / PageLoader / ProductCardSkeleton (`ui/Spinner.jsx`)
+- `<Spinner size="md" label="Loading" />` for inline loaders.
+- `<PageLoader />` is the brand-pulsing NOVAËL wordmark — use for full-page initial loads.
+- `<ProductCardSkeleton />` for product grids.
+
+## Animation Patterns
+
+We use **Framer Motion exclusively**. Tailwind animations are reserved for `shimmer`, `marquee`, `pulseGold`, `bounceSubtle` (defined in config).
+
+### Standard scroll-reveal — use `AnimatedReveal`
+```jsx
+<AnimatedReveal y={40} duration={0.7}>
+  <h2>Section heading</h2>
+</AnimatedReveal>
+
+<AnimatedReveal stagger={0.1}>
+  <Item /><Item /><Item />
+</AnimatedReveal>
+```
+The component uses the **luxe easing** `[0.16, 1, 0.3, 1]` — copy that easing for any custom motion to keep the brand feel consistent.
+
+### Page transitions
+Handled by `AppRouter`'s `<PageFade>` wrapper — don't add per-page enter animations to whole pages.
+
+### Hover micro-interactions
+Use `motion.div` with `whileHover` or CSS group-hover on Tailwind. `ProductCard.jsx` is the reference for image cross-fade on hover.
+
+## Accessibility
+
+- All icon-only buttons get `aria-label` (see `Navbar.jsx` Menu/Search/Cart).
+- Form inputs get a visible `<label>` — already enforced by `Input` primitive.
+- Modals/Toasts/Dropdowns use Radix → keyboard + screen-reader handled.
+- Decorative SVGs (Logo, GoldDivider) have `aria-label="Novaël"` or `aria-hidden`.
+- Color contrast: ivory on black is fine; never put `taupe` text on `ivory` for body copy (only for line-through / muted).
+
+## Class Naming with Tailwind
+
+- Order: layout → spacing → sizing → typography → colors → effects → motion.
+- Brand letter-spacing: `tracking-[0.15em]` for headlines, `tracking-[0.2em]`–`tracking-[0.3em]` for uppercase labels.
+- Brand text sizes for labels: `text-[10px]` or `text-[11px]` (uppercase, `font-medium`/`font-semibold`).
+- Backdrop blur on overlays: `backdrop-blur-sm`/`-[6px]`. Z-index scale: nav `z-[800]`, drawer `z-[850]`, modal overlay `z-[900]`, modal content `z-[950]`, toast `z-[1000]`.

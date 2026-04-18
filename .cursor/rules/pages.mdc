@@ -1,0 +1,94 @@
+---
+description: Page components — what belongs in src/pages, routing, SEO
+globs: src/pages/**
+alwaysApply: false
+---
+
+# Pages
+
+Files in `src/pages/` are **route-level components**. One file per route. Each:
+
+- Default-exports a function named after the file (`export default function Home()`).
+- Composes domain components — never wraps `<Layout>`/`<Navbar>` itself (the layout is provided by `MainLayout` / `AdminLayout` via the router).
+- Owns its own data-fetching by calling hooks from `src/hooks/`.
+- Uses `<Helmet>` for `<title>` + `<meta name="description">` on every public page.
+
+## What is NOT a page
+
+- Anything reusable across routes → `components/`.
+- Anything that fetches admin data → keep its admin variant in `pages/admin/` and gate it with `<ProtectedRoute requiredAdmin />`.
+- Splitting a long page into sections is fine **inside the same file** as helper sub-components (see `Home.jsx` for `LetterReveal`, `Reviews`, etc.). Don't move them to `components/` unless they're reused.
+
+## Routing (defined in `routes/AppRouter.jsx`)
+
+- All page components are `lazy(() => import(...))` for code splitting. Add new routes the same way.
+- Public + auth-protected routes share `<MainLayout />`.
+- Admin routes share `<AdminLayout />` and live under `<ProtectedRoute requiredAdmin />`.
+- Page transitions: every public route is wrapped in `<PageFade>`. Admin routes are not (instant swap inside the dashboard).
+- Use `<Link>` / `<NavLink>` from `react-router-dom`. Never `<a>` for internal nav.
+
+## Public Page Map
+
+| Path | File | Notes |
+|---|---|---|
+| `/` | `Home.jsx` | Hero (parallax + letter reveal) → marquee → featured product → "Difference" grid → "How It Works" → reviews → mood grid → email capture |
+| `/shop` | `Shop.jsx` | Filters (category, price, sort) + `ProductGrid` |
+| `/shop/:slug` | `ProductDetail.jsx` | `react-image-gallery` + variants + accordion (details/usage/shipping) + reviews + related |
+| `/cart` | `Cart.jsx` | Full-page cart, mirrors `CartDrawer` |
+| `/checkout` | `Checkout.jsx` | 4-step wizard: contact/shipping → method → payment → review |
+| `/order-confirmation/:orderId` | `OrderConfirmation.jsx` | Thank-you, summary, guest sign-in prompt |
+| `/about` | `About.jsx` | Brand story, values, founder quote |
+| `/contact` | `Contact.jsx` | Form + info |
+| `/login`, `/register`, `/forgot-password` | `Login/Register/ForgotPassword.jsx` | Wrapped in `<AuthShell>` (split-screen) |
+| `/account`, `/account/orders` | `Account.jsx`, `OrderHistory.jsx` | Auth-protected. Tabs: overview, orders, profile, addresses, wishlist, promos |
+| `*` | `NotFound.jsx` | 404 |
+
+## Admin Page Map
+
+See `.cursor/rules/admin.mdc` for the admin pages.
+
+## Standard Page Skeleton
+
+```jsx
+import { Helmet } from 'react-helmet-async'
+import { useProducts } from '../hooks/useProducts'
+
+export default function Shop() {
+  const { products, loading } = useProducts({ sort: 'featured' })
+
+  return (
+    <>
+      <Helmet>
+        <title>Shop — Novaël</title>
+        <meta name="description" content="..." />
+      </Helmet>
+
+      <div className="pt-[var(--nav-height)] container-nvl">
+        {/* sections */}
+      </div>
+    </>
+  )
+}
+```
+
+Top padding `pt-[var(--nav-height)]` accounts for the fixed `Navbar`. Content is constrained by `.container-nvl` (defined in `globals.css`, max 1440 px).
+
+## SEO Rules
+
+- Every public page: `<Helmet><title>{Page} — Novaël</title><meta name="description" content="..."/></Helmet>`.
+- Title format: `Page Name — Novaël` (em dash, brand last).
+- For dynamic pages (`ProductDetail`, `OrderConfirmation`): use the entity name in the title, the entity's `short_desc` (or `description`) in the meta.
+- Don't add `<meta>` tags via plain `document.head` — always use Helmet so transitions don't desync.
+
+## Data + Loading + Empty States
+
+Every page that fetches must handle:
+1. `loading` → `<Spinner />` or section skeletons (`<ProductCardSkeleton />`).
+2. Error → toast.error(...) inside the hook or page; never silently swallow.
+3. Empty → branded empty state, e.g. _"Your edit is empty"_ in CartDrawer. Don't render a blank page.
+
+## Page Conventions
+
+- Section padding: `py-20 md:py-28` for hero-adjacent, `py-16` for body sections.
+- Section headings: small uppercase eyebrow (`text-[10px] uppercase tracking-[0.3em] text-gold`) + display headline (`font-display text-3xl md:text-5xl uppercase tracking-[0.15em]`).
+- Dark sections on `bg-black text-ivory`, light sections on `bg-ivory text-black`. Alternate them — never two dark sections in a row, never a section without a clear surface.

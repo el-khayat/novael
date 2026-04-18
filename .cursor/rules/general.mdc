@@ -1,0 +1,98 @@
+---
+description: Novaël project — stack, structure, brand tokens, absolute rules
+alwaysApply: true
+---
+
+# Novaël — Project Conventions
+
+Luxury women's beauty e-commerce SPA. Brand voice: minimalist, expensive, quiet confidence (Chanel-adjacent).
+
+## Stack
+
+- **React 19 + Vite 8** (SPA, no SSR). JS only — no TypeScript. All files are `.jsx` / `.js`.
+- **Tailwind CSS 3** (extends `tailwind.config.js` from CSS variables in `src/styles/tokens.css`)
+- **Supabase** (`@supabase/supabase-js`) for auth + DB. Frontend-only; no Node backend.
+- **Zustand** for global state (`src/store/`). `persist` middleware for cart only.
+- **React Router 7** (`BrowserRouter`, lazy routes, `AnimatePresence` page fades).
+- **Framer Motion 12** for all animations.
+- **Radix UI** for Dialog (Modal), Toast, Accordion, Dropdown, Tabs, Tooltip, Select.
+- **Recharts** — admin charts only.
+- **react-hook-form + zod + @hookform/resolvers** for forms.
+- **react-helmet-async** for per-page SEO meta.
+- **lucide-react** for icons. (Note: `Instagram` icon was removed — see `Footer.jsx` for custom SVG fallbacks for Instagram/TikTok/Pinterest.)
+
+## Folder Structure
+
+```
+src/
+├── components/
+│   ├── auth/          AuthShell (split-screen wrapper)
+│   ├── cart/          CartDrawer, CartItem
+│   ├── common/        Logo, GoldDivider, AnimatedReveal, SearchOverlay
+│   ├── layout/        Navbar, Footer, MainLayout, AdminLayout
+│   ├── product/       ProductCard, ProductGrid
+│   └── ui/            Button, Input, Badge, Modal, Toast, Spinner  ← primitives
+├── config/brand.js    Brand copy, nav config, values, marquee, categories
+├── hooks/             useProducts, useOrders, usePromo, useWishlist, useAdmin
+├── lib/               supabase.js (client), utils.js (cn, formatters, totals)
+├── pages/             One file per route. Admin pages under pages/admin/
+├── routes/            AppRouter, ProtectedRoute
+├── store/             cartStore (persisted), authStore
+└── styles/            tokens.css, globals.css
+```
+
+## Naming Conventions
+
+- Components: `PascalCase.jsx` (default export named the same).
+- Hooks: `useThing.js`, return an object `{ data, loading, error, ... }`.
+- Stores: `xxxStore.js`, exported as `useXxxStore`.
+- Utility functions: `camelCase` in `src/lib/utils.js`.
+- Tailwind classes are merged via `cn(...)` from `src/lib/utils.js` (clsx + tailwind-merge). **Always use `cn` when conditionally combining classes.**
+
+## Design Tokens (single source of truth)
+
+Defined in `src/styles/tokens.css` and mirrored in `tailwind.config.js`. **Never hardcode hex colors in components — use Tailwind utilities (`bg-gold`, `text-ivory`, etc.).**
+
+| Color | Hex | Use |
+|---|---|---|
+| `black` | `#0E0E0E` | primary background, dark surfaces |
+| `ivory` | `#F6F3EE` | text on dark, light surfaces |
+| `gold` | `#C6A97A` | the only accent. Borders, hovers, CTAs, dividers |
+| `plum` | `#2D133A` | rare accent (badges) |
+| `mauve` | `#B79BBF` | rare accent (status badges) |
+| `rose-nude` | `#E8C6C6` | error / destructive state |
+| `taupe` | `#A8A17A` | muted text, line-through prices |
+| `admin-bg` `#0A0A0A`, `admin-surface` `#141414` | admin only |
+
+Typography:
+- **`font-display`** = Cinzel (headlines, logo, labels). Always `uppercase` + wide tracking (`tracking-[0.15em]` to `tracking-[0.3em]`).
+- **`font-body`** = Montserrat (paragraphs, inputs). Default body has `letter-spacing: 0.03em`.
+- Headlines `<h1>`–`<h6>` are pre-styled in `globals.css` (display font, `letter-spacing: 0.12em`).
+
+## Absolute Rules
+
+- ❌ **No hardcoded hex colors.** Use Tailwind tokens (`text-gold`, `bg-ivory`, etc.).
+- ❌ **No new fonts.** Cinzel + Montserrat only.
+- ❌ **No npm packages added without need.** The stack above is intentionally tight.
+- ❌ **No CSS files per component.** Tailwind utilities + `globals.css` brand classes only.
+- ❌ **No emojis in UI.** Use `lucide-react` icons (or custom SVG components like `InstagramIcon` in `Footer.jsx`).
+- ❌ **No `console.log`** in committed code (`console.warn` for genuine warnings is fine — see `lib/supabase.js`).
+- ❌ **No `<a href>` for internal links** — use `<Link>` from react-router-dom.
+- ✅ Use the brand utility classes from `globals.css` when applicable: `.btn-luxe` (+ `--filled`/`--dark`), `.link-luxe`, `.gold-divider`, `.skeleton`, `.grain-overlay`, `.container-nvl`.
+- ✅ All money is rendered via `formatPrice(value)` from `lib/utils.js`.
+- ✅ All dates via `formatDate` / `formatDateTime` from `lib/utils.js`.
+- ✅ Page-level meta via `<Helmet>` (provider already in `main.jsx`).
+
+## Common Imports Cheatsheet
+
+```js
+import { cn, formatPrice, formatDate } from '@/lib/utils'   // (alias not configured — use relative)
+import { supabase } from '../lib/supabase'
+import { useCartStore } from '../store/cartStore'
+import { useAuthStore } from '../store/authStore'
+import { toast } from '../components/ui/Toast.jsx'
+import Button from '../components/ui/Button.jsx'
+import { Input, Textarea } from '../components/ui/Input.jsx'
+```
+
+Path imports use **relative paths**, not aliases. Don't introduce a path alias without updating `vite.config.js` first.

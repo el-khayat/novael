@@ -1,0 +1,110 @@
+---
+description: Admin dashboard — access control, layout, charts, CRUD patterns
+globs: src/pages/admin/**
+alwaysApply: false
+---
+
+# Admin Pages
+
+The admin section is a separate sub-app under `/admin/*` with its own layout, color palette, and patterns.
+
+## Access Control
+
+- **Routing gate**: every admin route is wrapped in `<ProtectedRoute requiredAdmin />` inside `routes/AppRouter.jsx`. The gate redirects to `/login` if not signed in, and `/` if signed in without `is_admin`.
+- **DB gate (RLS)**: every admin-only mutation must hit a table whose RLS policy allows `is_admin = true` on the requesting `auth.uid()`. The `profiles.is_admin` flag is the single switch.
+- Promote a user via the Supabase SQL editor:
+  ```sql
+  update public.profiles set is_admin = true where email = '...';
+  ```
+
+## Layout (`components/layout/AdminLayout.jsx`)
+
+- 240 px fixed sidebar with `Logo` (`color="gold"`), nav links, sign-out at the bottom.
+- Top bar shows admin's name + email + initials avatar.
+- Background: `bg-admin-bg` (`#0A0A0A`). Surfaces: `bg-admin-surface` (`#141414`). Borders: `border-gold/10`.
+- Active nav item: `bg-gold/10 text-gold border-l-2 border-gold`.
+
+When adding a new admin route:
+1. Add the lazy import + `<Route>` to `AppRouter.jsx`.
+2. Add an entry to the `links[]` array in `AdminLayout.jsx` with a `lucide-react` icon.
+
+## Color Overrides
+
+Admin only. Don't use these on the storefront:
+
+| Token | Hex | Use |
+|---|---|---|
+| `bg-admin-bg` | `#0A0A0A` | page bg, sidebar |
+| `bg-admin-surface` | `#141414` | cards, table cells, inputs |
+| `border-gold/10` | gold @ 10% | section dividers |
+| `border-gold/30` | gold @ 30% | active borders |
+
+Charts (Recharts) palette: `['#C6A97A', '#B79BBF', '#A8A17A', '#E8C6C6', '#2D133A']`. Tooltip style: `{ background: '#141414', border: '1px solid #C6A97A40', color: '#F6F3EE' }`. Grid lines: `#C6A97A10`. Axes: `#F6F3EE60`.
+
+## Page Header Pattern
+
+Every admin page starts with:
+
+```jsx
+<div className="flex items-end justify-between mb-8">
+  <div>
+    <div className="text-[10px] uppercase tracking-[0.3em] text-gold mb-1">{Eyebrow}</div>
+    <h1 className="font-display text-3xl uppercase tracking-[0.15em]">{Title}</h1>
+  </div>
+  {/* Right-side action(s): "+ New Product" button, filters, export CSV, etc. */}
+</div>
+```
+
+## Charts (Recharts only)
+
+`Recharts` is installed for admin charts. Don't use it on the storefront (would bloat public bundles). The `AdminDashboard` page is the reference for line, pie, and bar charts. Always wrap in `<ResponsiveContainer width="100%" height={260}>`.
+
+## CRUD Pattern
+
+CRUD pages use:
+- A **table** rendered from a `useAdminXxx()` hook.
+- A **modal** (`<Modal />`) for create + edit (same form, `editing` state holds the row or empty template).
+- A **second modal** for destructive actions (delete confirmation), `size="sm"`.
+- After every mutation: `toast.success(...)` then `setEditing(null)` + the hook's `load()` refresh.
+
+Reference: `AdminProducts.jsx` for product CRUD.
+
+```jsx
+const { products, saveProduct, deleteProduct, toggleActive } = useAdminProducts()
+const [editing, setEditing] = useState(null)   // null | row | { ...empty }
+const [deleting, setDeleting] = useState(null)
+
+await saveProduct(payload)            // upsert (id present = update)
+await deleteProduct(id)
+await toggleActive(id, !active)
+```
+
+Form values:
+- Always coerce numbers with `Number(form.x) || 0` when persisting (HTML inputs return strings).
+- Slugs: `slug: form.slug || slugify(form.name)`.
+- Tags / image URLs come from textareas — split + filter empty before saving.
+- After insert/update, **call the hook's `load()`** (or rely on the hook to do it) so the table refreshes.
+
+## CSV Export
+
+Use `downloadCSV(rows, filename)` from `lib/utils.js`. Reference: `AdminOrders.jsx` and `AdminCustomers.jsx`. Build a flat `rows` array — nested objects render as `[object Object]`.
+
+## Page Inventory
+
+| Path | File | Purpose |
+|---|---|---|
+| `/admin` | `AdminDashboard.jsx` | KPI cards (revenue, orders, products, customers) + revenue line chart + status pie + top-products bar + recent orders table |
+| `/admin/orders` | `AdminOrders.jsx` | Table, status filter, detail modal (update status + tracking), CSV export |
+| `/admin/products` | `AdminProducts.jsx` | List, create/edit modal, delete confirm, toggle active |
+| `/admin/stock` | `AdminStock.jsx` | Inline editable stock cells, low-stock highlight (`< 5`) |
+| `/admin/customers` | `AdminCustomers.jsx` | Search + CSV export |
+| `/admin/marketing` | `AdminMarketing.jsx` | Tabs: subscribers / send campaign / email logs / promo codes CRUD |
+
+## Don'ts
+
+- ❌ Don't import storefront layout components (`Navbar`, `Footer`, `CartDrawer`) into admin pages.
+- ❌ Don't reuse `MainLayout` for admin routes.
+- ❌ Don't put admin queries in a public hook — keep them in `useAdmin.js`.
+- ❌ Don't use `bg-black` / `bg-ivory` for admin surfaces — use the `admin-bg` / `admin-surface` tokens.
+- ❌ Don't ship admin pages without `<ProtectedRoute requiredAdmin />` — RLS is the second line of defense, not the first.
+- ❌ Don't add destructive actions without a confirmation modal.

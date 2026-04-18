@@ -1,0 +1,119 @@
+---
+description: Supabase client init, RLS awareness, table reference, error pattern
+globs: src/lib/**,src/hooks/**
+alwaysApply: false
+---
+
+# Supabase
+
+Single client initialized in `src/lib/supabase.js` from `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`. Schema is managed by versioned migrations under `supabase/migrations/` and applied via `npm run db:push` (no Docker, hosted-only workflow).
+
+## Client Rules
+
+- **One client.** Always import `{ supabase }` from `'../lib/supabase'`. Never call `createClient()` again.
+- The client is configured with `persistSession: true`, `autoRefreshToken: true`, `detectSessionInUrl: true` — these handle Google OAuth and password-reset redirects automatically. Don't override.
+- The frontend uses the **anon key only**. Service-role keys must never appear in this repo or in env vars consumed by Vite.
+- Missing env vars do not crash the app — `lib/supabase.js` falls back to placeholders + a console warning. Keep this resilience when editing.
+
+## RLS — what it lets the anon/auth user do
+
+| Table | Anon read | Auth user (own rows) | Admin (`profiles.is_admin = true`) |
+|---|---|---|---|
+| `profiles` | ❌ | select/update/insert own | full |
+| `products` | ✅ all rows | — | full CRUD |
+| `product_variants` | ✅ all rows | — | full CRUD |
+| `promo_codes` | ✅ active only | — | full CRUD |
+| `user_promo_usage` | ❌ | select/update/insert own | full |
+| `orders` | ❌ | select own; insert (anyone — supports guest checkout) | full |
+| `wishlist` | ❌ | full on own rows | (covered by user policy) |
+| `reviews` | ✅ approved (or own) | insert own | full |
+| `subscribers` | insert anyone | — | full |
+| `email_logs` | ❌ | — | full |
+
+**Therefore**:
+- Any frontend query for `orders`, `wishlist`, `user_promo_usage` returning empty for a logged-in user → check the `user_id` filter is set, not an RLS bug.
+- Guest checkout works because `orders` policy allows `insert with check (true)`. The `user_id` is null for guests, `guest_email` is set.
+- The `handle_new_user` trigger auto-creates a `profiles` row + a `user_promo_usage` row for `WELCOME15` on signup.
+
+## Table → Column Cheatsheet
+
+Frontend column names (post-alignment migrations):
+
+```
+products(id, slug, sku, name, short_desc, description, price, compare_price,
+         images jsonb, category, tags text[], ingredients, usage_instructions,
+         stock, is_active, is_featured, avg_rating, review_count, …)
+
+product_variants(id, product_id, name, price_modifier, stock, sort_order)
+
+orders(id, order_number, user_id, guest_email, status, items jsonb,
+       subtotal, discount_amount, shipping_cost, tax_amount, total,
+       promo_code, shipping_address jsonb, billing_address jsonb,
+       shipping_method, tracking_number, payment_method, payment_status,
+       notes, …)
+   status ∈ pending|confirmed|processing|shipped|delivered|cancelled|refunded
+
+promo_codes(id, code, description, discount_type, discount_value,
+            min_order_value, first_time_only, max_uses, uses_count,
+            expires_at, is_active)
+   discount_type ∈ percentage|fixed
+
+user_promo_usage(id, user_id, promo_code, used, used_at)
+
+wishlist(id, user_id, product_id)
+reviews(id, product_id, user_id, rating, title, body, is_approved)
+subscribers(id, email, source, is_active)
+email_logs(id, subject, body, recipients_count, sent_at, sent_by)
+```
+
+If you need a column that doesn't exist, **don't use `execute_sql` — write a new migration file** under `supabase/migrations/<timestamp>_<name>.sql` and run `npm run db:push`. Always make migrations idempotent with `do $$ … if exists/if not exists … end $$;` blocks (see `20260418010000_align_product_columns.sql` for the pattern).
+
+## Foreign-key Embeds
+
+PostgREST can only embed tables whose FK is in `public`. We point user-owned columns at `public.profiles(id)` (which itself FKs `auth.users` with cascade), so:
+
+```js
+supabase.from('orders').select('*, profile:profiles(full_name, email)')
+supabase.from('email_logs').select('*, sent_by_profile:profiles!sent_by(full_name, email)')
+```
+
+If you add a new user-owned table, FK its `user_id` to `public.profiles(id) on delete set null` (or `cascade`), **not** `auth.users`.
+
+## Error Pattern
+
+Inside hooks:
+
+```js
+try {
+  const { data, error: err } = await supabase.from('orders').insert(payload).select().single()
+  if (err) throw err
+  return data
+} catch (e) {
+  setError(e)
+  // optionally: toast.error('Could not place order', e.message)
+  throw e
+}
+```
+
+Inside pages calling a mutation:
+
+```js
+try {
+  await placeOrder(payload)
+  toast.success('Order placed')
+} catch (err) {
+  toast.error('Could not place order', err.message)
+}
+```
+
+- Always destructure `{ data, error: err }` (never shadow the global `Error`).
+- Always `throw` (or `setError`) — never silently `console.log` and continue.
+- User-facing failures go through the `toast` helper from `components/ui/Toast.jsx`. Never `alert(...)`.
+
+## Don'ts
+
+- ❌ Don't write SQL inside JS strings — use the Supabase client builder.
+- ❌ Don't expose anon key conditional logic in code (`if (key === 'placeholder')`). Let the client error naturally.
+- ❌ Don't call `supabase.auth.onAuthStateChange` outside `useAuthStore.init()` — it would create duplicate listeners.
+- ❌ Don't query auth tables (`auth.users`) directly. Always join through `profiles`.
+- ❌ Don't add a column or table without a migration. Schema in code = source of truth.

@@ -1,0 +1,124 @@
+---
+description: Hooks and Zustand stores — patterns, ownership, query rules
+globs: src/hooks/**,src/store/**
+alwaysApply: false
+---
+
+# Hooks & State
+
+State lives in two places:
+
+- **Zustand stores** (`src/store/`) — long-lived, app-wide state (auth, cart).
+- **Hooks** (`src/hooks/`) — per-component data fetching from Supabase, encapsulating the loading/error lifecycle.
+
+Local UI state (open/closed, hover, form values) stays in `useState` inside the component.
+
+## Zustand Stores
+
+### `useCartStore` (`store/cartStore.js`)
+Persisted to `localStorage` under key `novael-cart` (only `items` + `promo` — `isOpen` is session-only).
+
+Shape:
+```js
+{
+  items: [{ id, productId, variantId, slug, name, variantName, image, price, qty, maxQty }],
+  promo: null | { code, discount_type, discount_value, ... },
+  isOpen: false,
+}
+```
+
+Actions:
+- `addItem(product, variant?, qty=1)` — opens drawer, dedupes via `${productId}::${variantId}`, clamps to stock.
+- `removeItem(id)`, `updateQty(id, qty)`, `clearCart()`
+- `applyPromo(promo)`, `removePromo()`
+- `getItemCount()`, `getTotals(shippingCost, taxRate)` (delegates to `calculateOrderTotals` in `lib/utils.js`)
+- `openCart()`, `closeCart()`, `toggleCart()`
+
+### `useAuthStore` (`store/authStore.js`)
+Not persisted (Supabase client persists the session itself).
+
+Shape:
+```js
+{
+  user, profile, session,
+  isAdmin: boolean,
+  isLoading: boolean,
+  initialized: boolean,
+}
+```
+
+Actions: `init()` (call once from `App.jsx`), `login`, `register`, `loginWithGoogle`, `sendPasswordReset`, `logout`, `updateProfile`, `refreshProfile`, `setUserFromSession`.
+
+`init()` wires `supabase.auth.onAuthStateChange` so OAuth redirects, password resets, and tab-sync all keep state in sync.
+
+### Store Rules
+
+- ✅ Subscribe with selectors: `useCartStore((s) => s.items)` — never destructure the full store.
+- ✅ Add new actions inside the `create((set, get) => ({...}))` body. Use `get()` to read, `set()` to write.
+- ❌ Don't write to localStorage directly — use the `persist` middleware.
+- ❌ Don't put fetched server data (products, orders) in stores — that belongs in hooks.
+
+## Hooks Catalogue
+
+| Hook file | Exports | Owns |
+|---|---|---|
+| `useProducts.js` | `useProducts({ category, featured, limit, search, sort })`, `useProduct(slug)`, `useProductSearch(query, limit)` | Reads from `products` + `product_variants`. Filters `is_active = true` for shop-side. |
+| `useOrders.js` | `useUserOrders()`, `useOrder(id)`, `usePlaceOrder()` | Reads / inserts into `orders`. `usePlaceOrder` also decrements stock. |
+| `usePromo.js` | `usePromo()` (validate by code), `useUserPromos()` | Reads `promo_codes` + `user_promo_usage`. |
+| `useWishlist.js` | `useWishlist()` | Reads/writes `wishlist`. Returns `{ items, add, remove, toggle, has, refresh }`. No-op when not signed in. |
+| `useAdmin.js` | `useAdminStats`, `useAdminOrders`, `useAdminProducts`, `useAdminCustomers`, `useAdminSubscribers`, `useAdminPromos` | Admin-only — assumes RLS allows access via `is_admin`. |
+
+## Standard Hook Pattern
+
+```js
+import { useEffect, useState, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
+
+export function useThing(arg) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const { data, error: err } = await supabase
+        .from('table')
+        .select('*')
+        .eq('col', arg)
+      if (err) throw err
+      setData(data)
+    } catch (e) {
+      setError(e)
+    } finally {
+      setLoading(false)
+    }
+  }, [arg])
+
+  useEffect(() => { load() }, [load])
+
+  return { data, loading, error, refresh: load }
+}
+```
+
+Conventions:
+- **Always return `{ ..., loading, error }`** — pages depend on them.
+- Use `useCallback` for the loader so consumers can `refresh()`.
+- For one-shot effects with cleanup, use the `let cancelled = false` pattern (see `useProduct` in `useProducts.js`) to avoid setting state on unmounted components.
+- Hooks that depend on auth grab the user via `useAuthStore((s) => s.user)` and **early-return** with empty state when `!user`.
+
+## Supabase Query Rules
+
+- Always select explicit columns when possible (`select('id, name, slug, price, images')`) on listing endpoints. Use `select('*')` only on detail/edit screens.
+- Use `single()` only when you've filtered to exactly one row (slug, id).
+- For embeds use the FK relationship name: `select('*, product:products(*)')` (wishlist), `select('*, profile:profiles(full_name, email)')` (admin orders).
+- For pagination/counts use `{ count: 'exact', head: true }` (see `useAdminStats`).
+- Never bypass RLS by hard-coding `service_role` keys in the frontend. Anon key only.
+
+## Don'ts
+
+- ❌ Don't fetch in components — wrap it in a hook.
+- ❌ Don't add `axios` / `react-query` / `swr`. Hooks + raw Supabase client is the pattern.
+- ❌ Don't subscribe to the entire Zustand store (`const store = useCartStore()`) — it triggers re-renders on every change.
+- ❌ Don't store derived values in state (totals, item counts) — compute them via store getters or `useMemo`.
