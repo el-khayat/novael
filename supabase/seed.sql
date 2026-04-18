@@ -14,12 +14,13 @@ on conflict (code) do nothing;
 
 -- Signature product
 insert into public.products (
-  slug, name, tagline, description,
-  price, compare_at_price, category, images, stock,
+  slug, sku, name, short_desc, description,
+  price, compare_price, category, images, stock,
   is_active, is_featured, tags,
   ingredients, usage_instructions
 ) values (
   'the-signature-lash',
+  'NVL-SIG-001',
   'The Signature Lash',
   'Magnetic. Weightless. Unmistakable.',
   'A featherlight magnetic eyelash crafted from premium silk fibres, designed for effortless wear from sunrise ceremony to candlelit soirée. Reusable up to 40 applications.',
@@ -37,11 +38,12 @@ on conflict (slug) do nothing;
 
 -- Optional: a second product to showcase the grid
 insert into public.products (
-  slug, name, tagline, description,
+  slug, sku, name, short_desc, description,
   price, category, images, stock,
   is_active, is_featured, tags
 ) values (
   'the-everyday-flutter',
+  'NVL-FLT-002',
   'The Everyday Flutter',
   'Understated. Refined. Yours.',
   'A softer sister to The Signature Lash — tapered for a natural, daywear flutter. Made for the woman whose presence needs no announcement.',

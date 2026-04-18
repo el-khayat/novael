@@ -43,11 +43,12 @@ create policy "profiles_insert_own" on public.profiles
 create table if not exists public.products (
   id                  uuid primary key default gen_random_uuid(),
   slug                text unique not null,
+  sku                 text,
   name                text not null,
-  tagline             text,
+  short_desc          text,
   description         text,
   price               numeric(10,2) not null,
-  compare_at_price    numeric(10,2),
+  compare_price       numeric(10,2),
   images              jsonb default '[]'::jsonb,
   category            text,
   tags                text[] default '{}',
@@ -75,12 +76,12 @@ create policy "products_admin_all" on public.products
   );
 
 create table if not exists public.product_variants (
-  id          uuid primary key default gen_random_uuid(),
-  product_id  uuid references public.products(id) on delete cascade,
-  name        text not null,
-  price_delta numeric(10,2) default 0,
-  stock       integer default 0,
-  sort_order  integer default 0
+  id             uuid primary key default gen_random_uuid(),
+  product_id     uuid references public.products(id) on delete cascade,
+  name           text not null,
+  price_modifier numeric(10,2) default 0,
+  stock          integer default 0,
+  sort_order     integer default 0
 );
 
 alter table public.product_variants enable row level security;

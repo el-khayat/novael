@@ -26,12 +26,13 @@ export default function Modal({ open, onOpenChange, title, description, children
             </Dialog.Overlay>
             <Dialog.Content asChild>
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-50%' }}
+                animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-50%' }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
+                style={{ left: '50%', top: '50%' }}
                 className={cn(
-                  'fixed left-1/2 top-1/2 z-[950] w-[94vw] -translate-x-1/2 -translate-y-1/2 bg-ivory text-black shadow-2xl border border-gold/30 p-8 max-h-[90vh] overflow-y-auto',
+                  'fixed z-[950] w-[94vw] bg-ivory text-black shadow-2xl border border-gold/30 p-8 max-h-[90vh] overflow-y-auto',
                   sizeClasses[size],
                   className,
                 )}
