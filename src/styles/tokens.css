@@ -1,0 +1,48 @@
+/* =============================================================
+   NOVAËL — Design Tokens
+   Single source of truth for colors, typography, spacing.
+   Override any variable here to re-theme the entire app.
+   ============================================================= */
+
+:root {
+  /* Core Brand */
+  --color-black:        #0E0E0E;
+  --color-ivory:        #F6F3EE;
+  --color-gold:         #C6A97A;
+
+  /* Supporting Accents */
+  --color-plum:         #2D133A;
+  --color-mauve:        #B79BBF;
+  --color-rose-nude:    #E8C6C6;
+  --color-taupe:        #A8A17A;
+
+  /* Semantic Aliases */
+  --color-bg-primary:    var(--color-black);
+  --color-bg-secondary:  var(--color-ivory);
+  --color-text-on-dark:  var(--color-ivory);
+  --color-text-on-light: var(--color-black);
+  --color-accent:        var(--color-gold);
+  --color-border:        rgba(198, 169, 122, 0.3);
+  --color-border-strong: rgba(198, 169, 122, 0.6);
+  --color-muted:         rgba(246, 243, 238, 0.55);
+  --color-muted-dark:    rgba(14, 14, 14, 0.55);
+
+  /* Typography Scale */
+  --font-display: 'Cinzel', 'Playfair Display', Georgia, serif;
+  --font-body:    'Montserrat', 'Lato', 'Open Sans', sans-serif;
+
+  /* Radii */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   16px;
+  --radius-pill: 999px;
+
+  /* Transitions */
+  --transition-fast:   0.2s ease;
+  --transition-normal: 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-slow:   0.8s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --container-max: 1440px;
+  --nav-height:    76px;
+}
