@@ -9,7 +9,7 @@
 insert into public.promo_codes
   (code, description, discount_type, discount_value, first_time_only, is_active)
 values
-  ('WELCOME15', '15% off your first order', 'percent', 15, true, true)
+  ('WELCOME15', '15% off your first order', 'percentage', 15, true, true)
 on conflict (code) do nothing;
 
 -- Signature product

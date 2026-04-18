@@ -103,7 +103,7 @@ create table if not exists public.promo_codes (
   id              uuid primary key default gen_random_uuid(),
   code            text unique not null,
   description     text,
-  discount_type   text check (discount_type in ('percent','fixed')),
+  discount_type   text check (discount_type in ('percentage','fixed')),
   discount_value  numeric(10,2) not null,
   min_order_value numeric(10,2) default 0,
   first_time_only boolean default false,
@@ -161,21 +161,23 @@ create policy "promo_usage_admin_all" on public.user_promo_usage
 create table if not exists public.orders (
   id                uuid primary key default gen_random_uuid(),
   order_number      text unique not null,
-  user_id           uuid references auth.users(id) on delete set null,
+  user_id           uuid references public.profiles(id) on delete set null,
   guest_email       text,
   status            text default 'pending'
-    check (status in ('pending','processing','shipped','delivered','cancelled','refunded')),
+    check (status in ('pending','confirmed','processing','shipped','delivered','cancelled','refunded')),
   items             jsonb not null,
   subtotal          numeric(10,2) not null,
-  discount          numeric(10,2) default 0,
-  shipping          numeric(10,2) default 0,
-  tax               numeric(10,2) default 0,
+  discount_amount   numeric(10,2) default 0,
+  shipping_cost     numeric(10,2) default 0,
+  tax_amount        numeric(10,2) default 0,
   total             numeric(10,2) not null,
   promo_code        text,
   shipping_address  jsonb,
   billing_address   jsonb,
   shipping_method   text,
   tracking_number   text,
+  payment_method    text,
+  payment_status    text default 'pending',
   notes             text,
   created_at        timestamptz default now(),
   updated_at        timestamptz default now()
@@ -274,7 +276,7 @@ create table if not exists public.email_logs (
   body              text,
   recipients_count  integer default 0,
   sent_at           timestamptz default now(),
-  sent_by           uuid references auth.users(id)
+  sent_by           uuid references public.profiles(id) on delete set null
 );
 
 alter table public.email_logs enable row level security;
