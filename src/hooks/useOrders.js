@@ -55,11 +55,8 @@ export function usePlaceOrder() {
     promoCode, shippingAddress, billingAddress, paymentMethod = 'card',
     guestEmail, notes,
   }) => {
-    const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true })
-    const orderNumber = generateOrderNumber((count || 0) + 1)
-
     const payload = {
-      order_number: orderNumber,
+      order_number: generateOrderNumber(),
       user_id: user?.id || null,
       guest_email: user ? null : guestEmail,
       status: 'confirmed',
@@ -77,7 +74,12 @@ export function usePlaceOrder() {
       notes,
     }
 
-    const { data, error } = await supabase.from('orders').insert(payload).select().single()
+    let data, error
+    for (let attempt = 0; attempt < 5; attempt++) {
+      if (attempt > 0) payload.order_number = generateOrderNumber()
+      ;({ data, error } = await supabase.from('orders').insert(payload).select().single())
+      if (!error || error.code !== '23505') break
+    }
     if (error) throw error
 
     for (const it of items) {

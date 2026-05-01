@@ -46,10 +46,11 @@ export function formatDateTime(date) {
   })
 }
 
-export function generateOrderNumber(sequence = null) {
+export function generateOrderNumber() {
   const year = new Date().getFullYear()
-  const seq = sequence ?? Math.floor(Math.random() * 99999)
-  return `NVL-${year}-${String(seq).padStart(5, '0')}`
+  const ts = String(Date.now()).slice(-4)
+  const rand = String(Math.floor(Math.random() * 1000)).padStart(3, '0')
+  return `NVL-${year}-${ts}${rand}`
 }
 
 export function calculateOrderTotals({ items = [], promo = null, shippingCost = 0, taxRate = 0 }) {
