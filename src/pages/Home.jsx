@@ -159,8 +159,18 @@ function AnnouncementMarquee() {
   )
 }
 
-function FeaturedProduct({ product }) {
+function FeaturedProduct({ product, loading }) {
   const addItem = useCartStore((s) => s.addItem)
+
+  if (loading) {
+    return (
+      <section className="bg-ivory py-24 lg:py-32">
+        <div className="container-nvl flex justify-center">
+          <div className="h-4 w-4 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+        </div>
+      </section>
+    )
+  }
 
   if (!product) {
     return (
@@ -460,8 +470,12 @@ function EmailCapture() {
 }
 
 export default function Home() {
-  const { products } = useProducts({ featured: true, limit: 1 })
+  const { products, loading: featuredLoading, error: featuredError } = useProducts({ featured: true, limit: 1 })
   const featured = products?.[0]
+
+  useEffect(() => {
+    if (featuredError) console.error('[Home] Featured product query failed:', featuredError)
+  }, [featuredError])
   const [reviews, setReviews] = useState([])
 
   useEffect(() => {
@@ -488,7 +502,7 @@ export default function Home() {
       </Helmet>
       <Hero />
       <AnnouncementMarquee />
-      <FeaturedProduct product={featured} />
+      <FeaturedProduct product={featured} loading={featuredLoading} />
       <TheDifference />
       <HowItWorks />
       <Reviews reviews={reviews} />

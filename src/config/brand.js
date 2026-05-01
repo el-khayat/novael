@@ -40,9 +40,7 @@ export const brand = {
 }
 
 export const SHIPPING_OPTIONS = [
-  { id: 'standard', label: 'Standard Shipping', eta: '5–7 business days', priceText: 'Free over $75 · $5.99 under' },
-  { id: 'express', label: 'Express Shipping', eta: '2–3 business days', priceText: '$12.99' },
-  { id: 'overnight', label: 'Overnight', eta: 'Next business day', priceText: '$24.99' },
+  { id: 'standard', label: 'Standard Shipping', eta: '5–7 business days', priceText: 'Free' },
 ]
 
 export const CATEGORIES = [
@@ -52,15 +50,5 @@ export const CATEGORIES = [
 ]
 
 export const COUNTRIES = [
-  { code: 'US', name: 'United States' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'FR', name: 'France' },
-  { code: 'AE', name: 'United Arab Emirates' },
-  { code: 'SA', name: 'Saudi Arabia' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'DE', name: 'Germany' },
-  { code: 'IT', name: 'Italy' },
-  { code: 'ES', name: 'Spain' },
-  { code: 'JP', name: 'Japan' },
+  { code: 'MA', name: 'Morocco' },
 ]

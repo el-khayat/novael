@@ -76,16 +76,8 @@ export function calculateOrderTotals({ items = [], promo = null, shippingCost = 
   }
 }
 
-export function calculateShipping(subtotal, method = 'standard') {
-  switch (method) {
-    case 'express':
-      return 12.99
-    case 'overnight':
-      return 24.99
-    case 'standard':
-    default:
-      return subtotal >= 75 ? 0 : 5.99
-  }
+export function calculateShipping() {
+  return 0
 }
 
 export function percentOff(price, comparePrice) {

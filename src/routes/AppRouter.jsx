@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import MainLayout from '../components/layout/MainLayout.jsx'
 import AdminLayout from '../components/layout/AdminLayout.jsx'
@@ -62,7 +62,7 @@ export default function AppRouter() {
         <Routes location={location} key={location.pathname}>
           <Route element={<MainLayout />}>
             <Route path="/" element={<PageFade><Home /></PageFade>} />
-            <Route path="/shop" element={<PageFade><Shop /></PageFade>} />
+            <Route path="/shop" element={<Navigate to="/shop/lashes" replace />} />
             <Route path="/shop/:slug" element={<PageFade><ProductDetail /></PageFade>} />
             <Route path="/cart" element={<PageFade><Cart /></PageFade>} />
             <Route path="/checkout" element={<PageFade><Checkout /></PageFade>} />

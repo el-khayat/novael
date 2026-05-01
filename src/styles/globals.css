@@ -109,7 +109,7 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--color-gold);
   transform: translateY(101%);
   transition: transform var(--transition-normal);
-  z-index: -1;
+  z-index: 0;
 }
 .btn-luxe:hover { color: var(--color-black); }
 .btn-luxe:hover::before { transform: translateY(0); }

@@ -1,17 +1,17 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Check, CreditCard, Lock, ArrowLeft } from 'lucide-react'
+import { Check, Lock, ArrowLeft, Banknote } from 'lucide-react'
 import { useCartStore } from '../store/cartStore'
 import { useAuthStore } from '../store/authStore'
 import { usePlaceOrder } from '../hooks/useOrders'
 import { usePromo } from '../hooks/usePromo'
-import { SHIPPING_OPTIONS, COUNTRIES } from '../config/brand'
-import { formatPrice, calculateShipping, cn } from '../lib/utils'
-import Input, { Textarea } from '../components/ui/Input.jsx'
+import { SHIPPING_OPTIONS } from '../config/brand'
+import { formatPrice, cn } from '../lib/utils'
+import Input from '../components/ui/Input.jsx'
 import { toast } from '../components/ui/Toast.jsx'
 import Modal from '../components/ui/Modal.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -27,11 +27,10 @@ const shippingSchema = z.object({
   address2: z.string().optional(),
   city: z.string().min(1, 'Required'),
   country: z.string().min(1, 'Required'),
-  zip: z.string().min(3, 'Required'),
   saveAddress: z.boolean().optional(),
 })
 
-const steps = ['Contact', 'Shipping', 'Payment', 'Review']
+const steps = ['Contact', 'Shipping', 'Review']
 
 export default function Checkout() {
   const navigate = useNavigate()
@@ -46,7 +45,6 @@ export default function Checkout() {
   const [signInOpen, setSignInOpen] = useState(false)
   const [shippingAddress, setShippingAddress] = useState(null)
   const [shippingMethod, setShippingMethod] = useState('standard')
-  const [paymentForm, setPaymentForm] = useState({ number: '', expiry: '', cvv: '', name: '' })
   const [promoInput, setPromoInput] = useState('')
   const [placing, setPlacing] = useState(false)
 
@@ -57,7 +55,7 @@ export default function Checkout() {
       firstName: profile?.full_name?.split(' ')[0] || '',
       lastName: profile?.full_name?.split(' ').slice(1).join(' ') || '',
       phone: profile?.phone || '',
-      address1: '', address2: '', city: '', country: 'US', zip: '',
+      address1: '', address2: '', city: '', country: 'MA',
     },
   })
 
@@ -75,10 +73,7 @@ export default function Checkout() {
     }
   }, [items.length, navigate, placing])
 
-  const shippingCost = useMemo(
-    () => calculateShipping(getTotals(0, 0).subtotal, shippingMethod),
-    [getTotals, shippingMethod],
-  )
+  const shippingCost = 0
 
   const totals = getTotals(shippingCost, 0)
 
@@ -122,7 +117,6 @@ export default function Checkout() {
           address2: shippingAddress.address2 || '',
           city: shippingAddress.city,
           country: shippingAddress.country,
-          zip: shippingAddress.zip,
           phone: shippingAddress.phone,
           email: shippingAddress.email,
         },
@@ -203,18 +197,13 @@ export default function Checkout() {
                   <Input label="Address" dark {...register('address1')} error={errors.address1?.message} />
                   <Input label="Apartment, Suite (optional)" dark {...register('address2')} />
 
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <Input label="City" dark {...register('city')} error={errors.city?.message} />
                     <div>
                       <label className="block mb-2 text-[10px] uppercase tracking-[0.2em] text-ivory/70">Country</label>
-                      <select
-                        {...register('country')}
-                        className="w-full h-12 bg-transparent border-b border-gold/30 text-ivory focus:border-gold outline-none text-[14px]"
-                      >
-                        {COUNTRIES.map((c) => <option key={c.code} value={c.code} className="bg-black">{c.name}</option>)}
-                      </select>
+                      <div className="w-full h-12 border-b border-gold/30 text-ivory text-[14px] flex items-center">Morocco</div>
+                      <input type="hidden" {...register('country')} value="MA" />
                     </div>
-                    <Input label="ZIP / Postal" dark {...register('zip')} error={errors.zip?.message} />
                   </div>
 
                   {user && (
@@ -231,78 +220,52 @@ export default function Checkout() {
               {step === 1 && (
                 <div className="bg-ivory/5 border border-gold/10 p-8 space-y-4">
                   <h2 className="font-display uppercase tracking-[0.2em] mb-6">Shipping Method</h2>
-                  {SHIPPING_OPTIONS.map((opt) => (
-                    <label
-                      key={opt.id}
-                      className={cn(
-                        'flex items-center justify-between p-5 border cursor-pointer transition-colors',
-                        shippingMethod === opt.id ? 'border-gold bg-gold/5' : 'border-ivory/10 hover:border-gold/40',
-                      )}
-                    >
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="radio"
-                          name="shipping"
-                          checked={shippingMethod === opt.id}
-                          onChange={() => setShippingMethod(opt.id)}
-                          className="accent-gold"
-                        />
-                        <div>
-                          <div className="font-display text-sm uppercase tracking-[0.2em]">{opt.label}</div>
-                          <div className="text-xs text-ivory/50 mt-1">{opt.eta}</div>
-                        </div>
+                  <div className="flex items-center justify-between p-5 border border-gold bg-gold/5">
+                    <div className="flex items-center gap-4">
+                      <Check className="w-4 h-4 text-gold shrink-0" />
+                      <div>
+                        <div className="font-display text-sm uppercase tracking-[0.2em]">Standard Shipping</div>
+                        <div className="text-xs text-ivory/50 mt-1">5–7 business days</div>
                       </div>
-                      <div className="text-sm text-gold">{opt.priceText}</div>
-                    </label>
-                  ))}
+                    </div>
+                    <div className="text-sm font-display uppercase tracking-[0.15em] text-gold">Free</div>
+                  </div>
                   <div className="flex gap-3 pt-4">
                     <Button variant="ghost" onClick={() => setStep(0)}>Back</Button>
-                    <Button variant="filled" className="flex-1" onClick={() => setStep(2)}>Continue to Payment</Button>
+                    <Button variant="filled" className="flex-1" onClick={() => setStep(2)}>Review Order</Button>
                   </div>
                 </div>
               )}
 
               {step === 2 && (
                 <div className="bg-ivory/5 border border-gold/10 p-8 space-y-6">
-                  <h2 className="font-display uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                    <CreditCard className="w-4 h-4 text-gold" /> Payment
-                  </h2>
-                  {/* PAYMENT INTEGRATION PLACEHOLDER — Integrate Stripe.js here */}
+                  <h2 className="font-display uppercase tracking-[0.2em] mb-6">Review & Confirm</h2>
 
-                  <Input
-                    label="Cardholder Name"
-                    dark
-                    value={paymentForm.name}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
-                    placeholder="Name on card"
-                  />
-                  <Input
-                    label="Card Number"
-                    dark
-                    value={paymentForm.number}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, number: e.target.value })}
-                    placeholder="1234 5678 9012 3456"
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="Expiry"
-                      dark
-                      value={paymentForm.expiry}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, expiry: e.target.value })}
-                      placeholder="MM / YY"
-                    />
-                    <Input
-                      label="CVV"
-                      dark
-                      value={paymentForm.cvv}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, cvv: e.target.value })}
-                      placeholder="123"
-                    />
-                  </div>
+                  <ReviewSection title="Ship To">
+                    <div className="text-sm text-ivory/80">
+                      {shippingAddress.firstName} {shippingAddress.lastName}<br />
+                      {shippingAddress.address1} {shippingAddress.address2}<br />
+                      {shippingAddress.city}<br />
+                      Morocco<br />
+                      {shippingAddress.email} · {shippingAddress.phone}
+                    </div>
+                  </ReviewSection>
 
-                  <div className="text-[11px] text-ivory/50 flex items-center gap-2">
-                    <Lock className="w-3 h-3 text-gold" /> Demo — no real charge will be made.
-                  </div>
+                  <ReviewSection title="Shipping">
+                    <div className="text-sm text-ivory/80">
+                      {SHIPPING_OPTIONS.find((o) => o.id === shippingMethod)?.label} — {SHIPPING_OPTIONS.find((o) => o.id === shippingMethod)?.eta}
+                    </div>
+                  </ReviewSection>
+
+                  <ReviewSection title="Payment">
+                    <div className="flex items-center gap-3 text-sm text-ivory/80">
+                      <Banknote className="w-5 h-5 text-gold shrink-0" />
+                      <div>
+                        <div className="font-display uppercase tracking-[0.15em] text-ivory">Cash on Delivery</div>
+                        <div className="text-[11px] text-ivory/50 mt-1">You pay when your order arrives.</div>
+                      </div>
+                    </div>
+                  </ReviewSection>
 
                   <div className="pt-2">
                     <div className="text-[10px] uppercase tracking-[0.25em] text-gold mb-2">Promo Code</div>
@@ -319,39 +282,6 @@ export default function Checkout() {
 
                   <div className="flex gap-3 pt-4">
                     <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
-                    <Button variant="filled" className="flex-1" onClick={() => setStep(3)}>Review Order</Button>
-                  </div>
-                </div>
-              )}
-
-              {step === 3 && (
-                <div className="bg-ivory/5 border border-gold/10 p-8 space-y-6">
-                  <h2 className="font-display uppercase tracking-[0.2em] mb-6">Review & Confirm</h2>
-
-                  <ReviewSection title="Ship To">
-                    <div className="text-sm text-ivory/80">
-                      {shippingAddress.firstName} {shippingAddress.lastName}<br />
-                      {shippingAddress.address1} {shippingAddress.address2}<br />
-                      {shippingAddress.city}, {shippingAddress.zip}<br />
-                      {COUNTRIES.find((c) => c.code === shippingAddress.country)?.name}<br />
-                      {shippingAddress.email} · {shippingAddress.phone}
-                    </div>
-                  </ReviewSection>
-
-                  <ReviewSection title="Shipping">
-                    <div className="text-sm text-ivory/80">
-                      {SHIPPING_OPTIONS.find((o) => o.id === shippingMethod)?.label} — {SHIPPING_OPTIONS.find((o) => o.id === shippingMethod)?.eta}
-                    </div>
-                  </ReviewSection>
-
-                  <ReviewSection title="Payment">
-                    <div className="text-sm text-ivory/80">
-                      Card ending in ••{paymentForm.number.slice(-4) || '••'}
-                    </div>
-                  </ReviewSection>
-
-                  <div className="flex gap-3 pt-4">
-                    <Button variant="ghost" onClick={() => setStep(2)}>Back</Button>
                     <Button
                       variant="filled"
                       className="flex-1"

@@ -28,8 +28,10 @@ const Button = forwardRef(function Button(
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? <span className="h-3 w-3 border border-current border-t-transparent rounded-full animate-spin" /> : null}
-      {children}
+      <span className="relative z-[1] inline-flex items-center gap-2">
+        {loading ? <span className="h-3 w-3 border border-current border-t-transparent rounded-full animate-spin" /> : null}
+        {children}
+      </span>
     </Component>
   )
 })
