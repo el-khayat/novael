@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
-import { ChevronDown, Star, Sparkles, RefreshCw, Leaf, Plus, ArrowRight } from 'lucide-react'
-import womenWithLashes from '../assets/women_with_lashes.png'
+import { ChevronDown, Star, Sparkles, RefreshCw, Leaf, ArrowRight } from 'lucide-react'
+import hero1 from '../assets/hero/women_with_lashes-2.png'
+import hero2 from '../assets/hero/women_with_lashes.png'
+import hero3 from '../assets/hero/women_with_lashes-3.png'
 import { useProducts } from '../hooks/useProducts'
 import { supabase } from '../lib/supabase'
 import { brand } from '../config/brand'
@@ -13,17 +15,9 @@ import Logo from '../components/common/Logo.jsx'
 import { useCartStore } from '../store/cartStore'
 import { toast } from '../components/ui/Toast.jsx'
 
-const HERO_IMAGE = womenWithLashes
+const HERO_IMAGES = [hero1, hero2, hero3]
 const FEATURED_IMG = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1400&q=80'
 
-const MOOD_IMAGES = [
-  'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1503236823255-94609f598e71?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1588680388350-47c3d433d8f5?auto=format&fit=crop&w=800&q=80',
-]
 
 const FALLBACK_REVIEWS = [
   {
@@ -70,19 +64,36 @@ function LetterReveal({ text, className }) {
 
 function Hero() {
   const { scrollY } = useScroll()
-  const y = useTransform(scrollY, [0, 800], [0, 240])
   const opacity = useTransform(scrollY, [0, 400], [1, 0])
+  const [current, setCurrent] = useState(0)
+
+  useEffect(() => {
+    const t = setInterval(() => setCurrent((i) => (i + 1) % HERO_IMAGES.length), 5000)
+    return () => clearInterval(t)
+  }, [])
 
   return (
     <section className="relative h-screen w-full overflow-hidden grain-overlay">
-      <motion.div
-        style={{ y }}
-        className="absolute inset-0 -z-10"
-      >
-        <img src={HERO_IMAGE} alt="" className="w-full h-[120%] object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/55 to-black/80" />
-      </motion.div>
+      {/* Sliding images */}
+      <AnimatePresence mode="sync">
+        <motion.div
+          key={current}
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '-100%' }}
+          transition={{ duration: 1, ease: [0.76, 0, 0.24, 1] }}
+          className="absolute inset-0"
+        >
+          <img
+            src={HERO_IMAGES[current]}
+            alt=""
+            className="w-full h-full object-cover object-top"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/45 to-black/80" />
+        </motion.div>
+      </AnimatePresence>
 
+      {/* Text content */}
       <div className="relative z-10 h-full container-nvl flex flex-col items-center justify-center text-center">
         <motion.div
           initial={{ scaleX: 0 }}
@@ -129,9 +140,21 @@ function Hero() {
         </motion.div>
       </div>
 
+      {/* Slide indicators */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+        {HERO_IMAGES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`h-px transition-all duration-500 ${i === current ? 'w-10 bg-gold' : 'w-4 bg-ivory/40'}`}
+          />
+        ))}
+      </div>
+
+      {/* Scroll cue */}
       <motion.div
         style={{ opacity }}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 text-gold z-10"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-gold z-10"
       >
         <motion.div
           animate={{ y: [0, 8, 0] }}
@@ -380,29 +403,6 @@ function Reviews({ reviews }) {
   )
 }
 
-function MoodGrid() {
-  return (
-    <section className="bg-black py-0">
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-1">
-        {MOOD_IMAGES.map((src, i) => (
-          <Link
-            key={i}
-            to="/shop"
-            className="relative aspect-square overflow-hidden group grain-overlay"
-          >
-            <img src={src} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors duration-500 flex items-center justify-center">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-center text-ivory">
-                <Plus className="w-6 h-6 mx-auto text-gold mb-2" />
-                <div className="text-[10px] uppercase tracking-[0.3em]">Shop This Look</div>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </section>
-  )
-}
 
 function EmailCapture() {
   const [email, setEmail] = useState('')
@@ -507,7 +507,6 @@ export default function Home() {
       <TheDifference />
       <HowItWorks />
       <Reviews reviews={reviews} />
-      <MoodGrid />
       <EmailCapture />
     </>
   )
