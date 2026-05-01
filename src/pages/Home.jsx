@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
 import { ChevronDown, Star, Sparkles, RefreshCw, Leaf, Plus, ArrowRight } from 'lucide-react'
+import womenWithLashes from '../assets/women_with_lashes.png'
 import { useProducts } from '../hooks/useProducts'
 import { supabase } from '../lib/supabase'
 import { brand } from '../config/brand'
@@ -12,7 +13,7 @@ import Logo from '../components/common/Logo.jsx'
 import { useCartStore } from '../store/cartStore'
 import { toast } from '../components/ui/Toast.jsx'
 
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1920&q=80'
+const HERO_IMAGE = womenWithLashes
 const FEATURED_IMG = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1400&q=80'
 
 const MOOD_IMAGES = [
